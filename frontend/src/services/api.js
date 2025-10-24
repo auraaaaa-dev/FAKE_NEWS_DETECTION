@@ -1,92 +1,22 @@
-import axios from 'axios'
+// frontend/api.js
+const backendURL = import.meta.env.VITE_BACKEND_URL; // set in Vercel / .env.local
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+export async function detectFakeNews(text) {
+  try {
+    const response = await fetch(`${backendURL}/api/detect`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
 
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
+    if (!response.ok) {
+      throw new Error(`Server error: ${response.status}`);
+    }
 
-// Request interceptor
-api.interceptors.request.use(
-  (config) => {
-    return config
-  },
-  (error) => {
-    return Promise.reject(error)
+    const data = await response.json();
+    return data.result;
+  } catch (err) {
+    console.error("API call failed:", err);
+    return "Error: Unable to detect fake news right now.";
   }
-)
-
-// Response interceptor
-api.interceptors.response.use(
-  (response) => {
-    return response
-  },
-  (error) => {
-    console.error('API Error:', error.response?.data || error.message)
-    return Promise.reject(error)
-  }
-)
-
-export const claimsAPI = {
-  // Create a new claim
-  createClaim: async (claimData) => {
-    const formData = new FormData()
-    
-    if (claimData.text) formData.append('text', claimData.text)
-    if (claimData.link) formData.append('link', claimData.link)
-    if (claimData.media) formData.append('media', claimData.media)
-    if (claimData.mediaType) formData.append('mediaType', claimData.mediaType)
-    
-    const response = await api.post('/api/claims', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
-    return response.data
-  },
-
-  // Get all claims
-  getAllClaims: async () => {
-    const response = await api.get('/api/claims')
-    return response.data
-  },
-
-  // Get single claim
-  getClaimById: async (id) => {
-    const response = await api.get(`/api/claims/${id}`)
-    return response.data
-  },
-
-  // Flag a claim
-  flagClaim: async (id, flagData) => {
-    const response = await api.post(`/api/claims/${id}/flag`, flagData)
-    return response.data
-  },
-
-  // Unflag a claim
-  unflagClaim: async (id) => {
-    const response = await api.delete(`/api/claims/${id}/flag`)
-    return response.data
-  },
 }
-
-export const statsAPI = {
-  // Get statistics
-  getStats: async () => {
-    const response = await api.get('/api/stats')
-    return response.data
-  },
-}
-
-export const healthAPI = {
-  // Health check
-  checkHealth: async () => {
-    const response = await api.get('/api/health')
-    return response.data
-  },
-}
-
-export default api
